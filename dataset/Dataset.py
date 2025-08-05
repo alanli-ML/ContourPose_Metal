@@ -154,8 +154,12 @@ class MyDataset(Dataset):
 
     def random_background(self, img, mask):
         self.get_bg_imgs()
-        random_img_path = random.choice(self.bg_imgs)
-        random_img = cv2.imread(random_img_path)
+        if len(self.bg_imgs) == 0:
+            # Create a simple random background if no SUN dataset available
+            random_img = np.random.randint(0, 255, img.shape, dtype=np.uint8)
+        else:
+            random_img_path = random.choice(self.bg_imgs)
+            random_img = cv2.imread(random_img_path)
         row, col = img.shape[:2]
         if row < 481 or col < 641:
             random_img = cv2.resize(random_img, dsize=(960, int((960 / row) * col)))

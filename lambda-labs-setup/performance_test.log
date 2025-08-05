@@ -1,0 +1,5 @@
+using cuda device
+Downloading: "https://download.pytorch.org/models/resnet18-5c106cde.pth" to /home/ubuntu/.cache/torch/hub/checkpoints/resnet18-5c106cde.pth
+current class:obj1
+using cuda device
+current class:obj1

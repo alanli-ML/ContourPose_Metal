@@ -9,7 +9,6 @@ import argparse
 import time
 from torch import nn
 
-cuda = torch.cuda.is_available()
 def train(model, dataloader, optimizer, device):
     model.train()
     total_loss = 0.0
@@ -17,10 +16,8 @@ def train(model, dataloader, optimizer, device):
     start = time.time()
     for data in dataloader:
         iter += 1
-        if cuda:
-            img, heatmap, K, pose, gt_contour = [x.to(device) for x in data]
-        else:
-            img, heatmap, K, pose, gt_contour = data
+        # Always move data to the specified device
+        img, heatmap, K, pose, gt_contour = [x.to(device) for x in data]
         loss = model(img, heatmap, gt_contour)
         final_loss = torch.mean(loss["heatmap_loss"]) + torch.mean(loss["contour_loss"])
         final_loss = final_loss.to(torch.float32)
@@ -163,13 +160,13 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--eval", type=bool, default=True)
+    parser.add_argument("--eval", action='store_true', default=False)
     parser.add_argument("--data_path", type=str, default=os.path.join(os.getcwd(), "data"))
     parser.add_argument("--class_type", type=str, default="obj1")
     parser.add_argument("--lr", type=float, default=0.1)
-    parser.add_argument("--batch_size", type=int, default=1)
+    parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--epochs", type=int, default=150)
-    parser.add_argument("--train", type=bool, default=False)
+    parser.add_argument("--train", action='store_true', default=True)
     parser.add_argument("--gpu_id", help="GPU_ID", type=str, default="0")
     parser.add_argument("--used_epoch", type=int, default=-1)
     # The sceneObjs.yml file shows that obj1 is in scene with an index of 2
