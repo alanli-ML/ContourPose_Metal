@@ -11,7 +11,8 @@ from random import choice
 import math
 from config import rtDic, diameters
 
-cuda = torch.cuda.is_available()
+# Device detection - will be set by evaluator
+use_device_acceleration = False
 
 class evaluator:
     def __init__(self, args, model, test_loader, device):
@@ -57,7 +58,8 @@ class evaluator:
 
         with torch.no_grad():
             for data in tqdm.tqdm(self.data_loader, leave=False, desc="val"):
-                if cuda:
+                # Move data to the appropriate device (CPU, MPS, or CUDA)
+                if self.device.type != 'cpu':
                     img, heatmap, K, pose = [x.to(self.device) for x in data]
                 else:
                     img, heatmap, K, pose = data

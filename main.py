@@ -53,12 +53,17 @@ def load_network(net, model_dir, optimizer, resume=True, epoch=-1, strict=True):
         pth = epoch
 
     print("Load model: {}".format(os.path.join(model_dir, "{}.pkl".format(pth))))
-    pretrained_model = torch.load(os.path.join(model_dir, "{}.pkl".format(pth)))
+    pretrained_model = torch.load(os.path.join(model_dir, "{}.pkl".format(pth)), map_location=torch.device('cpu'))
     try:
         net.load_state_dict(pretrained_model['net'], strict=strict)
         optimizer.load_state_dict(pretrained_model['optimizer'])
     except KeyError:
-        net.load_state_dict(pretrained_model, strict=strict)
+        # Handle models saved with DataParallel (module. prefix)
+        state_dict = pretrained_model
+        if list(state_dict.keys())[0].startswith('module.'):
+            # Remove 'module.' prefix from keys
+            state_dict = {k[7:]: v for k, v in state_dict.items()}
+        net.load_state_dict(state_dict, strict=strict)
     return pth
 
 
@@ -102,8 +107,15 @@ def get_wd_params(model: nn.Module):
 
 
 def main(args):
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    print("using {} device".format(device))
+    if torch.backends.mps.is_available():
+        device = torch.device("mps")
+        print("using mps device (Metal GPU acceleration)")
+    elif torch.cuda.is_available():
+        device = torch.device("cuda:0")
+        print("using cuda device")
+    else:
+        device = torch.device("cpu")
+        print("using cpu device")
 
     if args.train:
         train_set = MyDataset(args.data_path, args.class_type, is_train=True)
@@ -119,7 +131,9 @@ def main(args):
 
     ContourNet = ContourPose(heatmap_dim=corners.shape[0])
 
-    ContourNet = nn.DataParallel(ContourNet, device_ids=[0, 1])
+    # Only use DataParallel for CUDA with multiple GPUs
+    if device.type == "cuda" and torch.cuda.device_count() > 1:
+        ContourNet = nn.DataParallel(ContourNet, device_ids=[0, 1])
     ContourNet = ContourNet.to(device)
     wd_params, no_wd_params = get_wd_params(ContourNet)
     optimizer = torch.optim.AdamW([{'params': list(no_wd_params), 'weight_decay': 0}, {'params': list(wd_params)}],

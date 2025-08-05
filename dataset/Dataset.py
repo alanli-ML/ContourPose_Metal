@@ -33,18 +33,18 @@ class MyDataset(Dataset):
         self.bg_imgs_path = os.path.join(os.getcwd(), "dataset/bg_imgs.npy")
         self.sun_path = os.path.join(root, "SUN2012pascalformat")
         self.get_bg_imgs()
-        self.bg_imgs = np.load(self.bg_imgs_path).astype(np.str)
+        self.bg_imgs = np.load(self.bg_imgs_path).astype(str)
 
         if is_train:
             self.path = osp.join(self.root, "train", self.cls)
-            self.K = yaml.load(open(osp.join(self.path, 'Intrinsic.yml'), 'r'))
-            self.train_pose = yaml.load(open(osp.join(self.path, 'gt.yml'), 'r'))
+            self.K = yaml.load(open(osp.join(self.path, 'Intrinsic.yml'), 'r'), Loader=yaml.FullLoader)
+            self.train_pose = yaml.load(open(osp.join(self.path, 'gt.yml'), 'r'), Loader=yaml.FullLoader)
             self.data_paths = self.get_train_data_path(self.root, self.cls)
 
         else:
             self.path = osp.join(self.root, "test/scene{}".format(str(self.scene)))
-            self.K = yaml.load(open(osp.join(self.path, 'Intrinsic.yml'), 'r'))
-            self.train_pose = yaml.load(open(osp.join(self.path, 'gt.yml'), 'r'))
+            self.K = yaml.load(open(osp.join(self.path, 'Intrinsic.yml'), 'r'), Loader=yaml.FullLoader)
+            self.train_pose = yaml.load(open(osp.join(self.path, 'gt.yml'), 'r'), Loader=yaml.FullLoader)
             self.data_paths = self.get_test_data_path()
 
     def get_train_data_path(self, root, cls):
@@ -280,6 +280,8 @@ class MyDataset(Dataset):
 
         heatmap = torch.tensor(heatmap, dtype=torch.float32)
         img = torch.tensor(img, dtype=torch.float32).permute((2, 0, 1))
+        K = torch.tensor(K, dtype=torch.float32)
+        pose = torch.tensor(pose, dtype=torch.float32)
         if self.is_training:
             gt_contour = torch.tensor(gt_contour, dtype=torch.int8).permute((2, 0, 1))
             return img, heatmap, K, pose, gt_contour
